@@ -27,19 +27,17 @@ speeds_array = np.array(ctm.data_all_to_matrix())
 
 # sub-sampling roads
 # sample_routes = sorted([random.randint(1, 1309) for i in range(148)])
-sample_routes = [6, 13, 15, 22, 25, 40, 76, 77, 94, 98, 99, 100, 115, 122,
-                 126, 129, 146, 147, 149, 150, 153, 160, 161, 162, 169, 170,
-                 172, 173, 174, 197, 198, 209, 210, 215, 222, 223, 229, 230,
-                 232, 233, 234, 236, 247, 248, 249, 250, 257, 262, 263, 268,
-                 275, 276, 279, 284, 295, 301, 304, 305, 309, 312, 313, 316,
-                 329, 332, 335, 340, 343, 344, 347, 348, 350, 353, 354, 361,
-                 363, 364, 369, 372, 378, 386, 388, 389, 392, 395, 401, 402,
-                 403, 405, 407, 409, 410, 411, 415, 416, 417, 418, 424, 428,
-                 430, 431, 434, 437, 438, 441, 442, 443, 445, 447, 451, 452,
-                 455, 456, 457, 458, 459, 460, 463, 464, 474, 477, 478, 481,
-                 482, 483, 486, 488, 494, 496, 497, 498, 500, 502, 503, 504,
-                 505, 506, 507, 508, 511, 512, 515, 516, 517, 519, 520, 522,
-                 523, 524, 525, 526, 527, 528, 529, 530, 531, 532, 533, 535]
+sample_routes = [13, 15, 22, 25, 76, 94, 99, 100, 124, 125,
+                 136, 140, 146, 147, 152, 161, 162, 173, 174, 189,
+                 190, 197, 198, 209, 210, 213, 214, 220, 222, 223,
+                 226, 229, 230, 232, 233, 234, 270, 271, 272, 274,
+                 275, 276, 284, 301, 305, 312, 313, 316, 329, 332,
+                 335, 340, 344, 350, 354, 361, 364, 375, 378, 386,
+                 389, 405, 407, 409, 410, 411, 415, 417, 418, 426,
+                 428, 429, 430, 441, 442, 443, 444, 445, 452, 453,
+                 455, 456, 459, 464, 469, 478, 481, 482, 494, 495,
+                 496, 500, 502, 508, 511, 516, 517, 520, 522, 523,
+                 524, 528, 530, 532]
 
 
 route_distances = route_distances[np.ix_(sample_routes, sample_routes)]
@@ -186,7 +184,7 @@ def compute_adjacency_matrix(
         A boolean graph adjacency matrix.
     """
     num_routes = route_distances.shape[0]
-    route_distances = route_distances / 1000000
+    route_distances = route_distances / 10000.0
     w2, w_mask = (
         route_distances * route_distances,
         np.ones([num_routes, num_routes]) - np.identity(num_routes),
@@ -382,7 +380,7 @@ lstm_units = 64
 graph_conv_params = {
     "aggregation_type": "mean",
     "combination_type": "concat",
-    "activation": None,
+    "activation": None, # None
 }
 
 st_gcn = LSTMGC(
@@ -399,7 +397,7 @@ outputs = st_gcn(inputs)
 
 model = keras.models.Model(inputs, outputs)
 model.compile(
-    optimizer=keras.optimizers.RMSprop(learning_rate=0.0002),
+    optimizer=keras.optimizers.RMSprop(learning_rate=0.01), #0.0002
     loss=keras.losses.MeanSquaredError(),
 )
 model.fit(
@@ -413,10 +411,6 @@ model.fit(
 # Making forecasts on test set
 x_test, y = next(test_dataset.as_numpy_iterator())
 y_pred = model.predict(x_test)
-plt.figure(figsize=(18, 6))
-plt.plot(y[:, 0, 0])
-plt.plot(y_pred[:, 0, 0])
-plt.legend(["actual", "forecast"])
 
 naive_mse, model_mse = (
     np.square(x_test[:, -1, :, 0] - y[:, 0, :]).mean(),
